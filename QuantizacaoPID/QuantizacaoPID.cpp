@@ -18,6 +18,7 @@ typedef struct UV
 } UV_channel;
 
 vector<UV_channel> uv_vector;
+auto total_sum = 0;
 
 void print_vector(vector<UV_channel> vector)
 {
@@ -27,21 +28,15 @@ void print_vector(vector<UV_channel> vector)
 	}
 }
 
-void median_cut(vector<UV_channel> uv_vector, int total_sum)
+void set_median(vector<UV_channel> uv_vector, int total_sum)
 {
-	vector<UV_channel> a;
-	vector<UV_channel> b;
-
 	// auxiliary file to see medians, frequences
-	ofstream aux_file;
+	ofstream data_file;
 
-	// super very important file to read
-	ofstream pid_file;
-	ofstream pid_file2;
+	ofstream new_file;
 
-	aux_file.open("auxiliary.csv", ios::app);
-	pid_file.open("pid1.txt");
-	pid_file2.open("pid2.txt");
+	data_file.open("app_data.txt", ios::app);
+	new_file.open("new_file.txt");
 
 	auto median = 0; 
 
@@ -50,31 +45,24 @@ void median_cut(vector<UV_channel> uv_vector, int total_sum)
 		if (median < total_sum/2)
 		{
 			median += it->freq;
-			a.push_back(*it);
-			aux_file << "a\t" << it->u << "\t" << it->v << "\t" << it->freq << "\tSA = " << median << endl;
-			pid_file << it->u << "\t" << it->v << "\t" << it->freq << endl;
+			data_file << "a\t" << it->u << "\t" << it->v << "\t" << it->freq << "\tSA = " << median << endl;
 		} else
 		{
 			median += it->freq;
-			b.push_back(*it);
-			aux_file << "b\t" << it->u << "\t" << it->v << "\t" << it->freq << "\tSA = " << median << endl;
-			pid_file2 << it->u << "\t" << it->v << "\t" << it->freq << endl;
+			data_file << "b\t" << it->u << "\t" << it->v << "\t" << it->freq << "\tSA = " << median << endl;
 		}
 	}
 
-	aux_file << "-------------------------------------------------------------------" << endl << endl;
+	data_file << "-------------------------------------------------------------------" << endl << endl;
 
-	aux_file.close();
-	pid_file.close();
-	pid_file2.close();
+	data_file.close();
+	new_file.close();
 }
 
-void order_by (vector<UV_channel> uv_vector, char channel)
+void sort_by (vector<UV_channel> uv_vector, char channel)
 {
 	ofstream sorted_channel;
 	channel == 'u' ? sorted_channel.open("sort_by_u.txt", ios::app) : sorted_channel.open("sort_by_v.txt", ios::app);
-
-	auto total_sum = 0;
 
 	if(channel == 'u')
 	{
@@ -109,62 +97,46 @@ void order_by (vector<UV_channel> uv_vector, char channel)
 		sorted_channel << "-------------------------------------------------------------------" << endl << endl;
 	}
 
-	median_cut(uv_vector, total_sum);
 	sorted_channel.close();
 }
 
-void quantization(vector<UV_channel> uv_vector)
+void set_range(vector<UV_channel> uv_vector)
 {
-	auto greatest_u = 0;
-	auto greatest_v = 0;
-	auto lowest_u = 255;
-	auto lowest_v = 255;
-
-	for (vector<UV_channel>::iterator it = uv_vector.begin(); it != uv_vector.end(); ++it)
+	auto u_min_max = minmax_element(uv_vector.begin(), uv_vector.end(), [](const UV_channel &a, const UV_channel &b)
 	{
-		if (greatest_u < it->u)
-		{
-			greatest_u = it->u;
-		}
-		if (greatest_v < it->v)
-		{
-			greatest_v = it->v;
-		}
-		if (lowest_u > it->u)
-		{
-			lowest_u = it->u;
-		}
-		if (lowest_v > it->v)
-		{
-			lowest_v = it->v;
-		}
-	}
+		return a.u < b.u;
+	});
+	auto v_min_max = minmax_element(uv_vector.begin(), uv_vector.end(), [](const UV_channel &a, const UV_channel &b)
+	{
+		return a.v < b.v;
+	});
 
-	(greatest_u - lowest_u) > (greatest_v - lowest_v) ? order_by(uv_vector, 'u') : order_by(uv_vector, 'v');
+	(u_min_max.second->u - u_min_max.first->u) > (v_min_max.second->v - v_min_max.first->v) ? sort_by(uv_vector, 'u') : sort_by(uv_vector, 'v');
 }
 
 int main()
 {
-	ifstream colors;
-	colors.open(FILE_NAME);
+	ifstream colors(FILE_NAME);
 
-	UV_channel color_hist;
 	int u;
 	int v;
 	int freq;
+	UV_channel hist;
 
 	while (colors >> u)
 	{
 		colors >> v;
 		colors >> freq;
-		color_hist.u = u;
-		color_hist.v = v;
-		color_hist.freq = freq;
-		uv_vector.push_back(color_hist);
+		hist.u = u;
+		hist.v = v;
+		hist.freq = freq;
+		uv_vector.push_back(hist);
 	}
-	
-	quantization(uv_vector);
 
 	colors.close();
+
+	set_range(uv_vector);
+	set_median(uv_vector, total_sum);
+
     return 0;
 }
