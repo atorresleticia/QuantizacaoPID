@@ -5,8 +5,9 @@
 #include <fstream>
 #include <iostream>
 #include <queue>
+#include <tuple>
 
-#define FILE_NAME "main_out.txt"
+#define FILE_NAME "new_file.txt"
 
 using namespace std;
 
@@ -18,7 +19,6 @@ typedef struct UV
 } UV_channel;
 
 vector<UV_channel> uv_vector;
-auto total_sum = 0;
 
 void print_vector(vector<UV_channel> vector)
 {
@@ -36,7 +36,6 @@ void set_median(vector<UV_channel> uv_vector, int total_sum)
 	ofstream new_file;
 
 	data_file.open("app_data.txt", ios::app);
-	new_file.open("new_file.txt");
 
 	auto median = 0; 
 
@@ -56,12 +55,12 @@ void set_median(vector<UV_channel> uv_vector, int total_sum)
 	data_file << "-------------------------------------------------------------------" << endl << endl;
 
 	data_file.close();
-	new_file.close();
 }
 
 void sort_by (vector<UV_channel> uv_vector, char channel)
 {
 	ofstream sorted_channel;
+	auto total_sum = 0;
 	channel == 'u' ? sorted_channel.open("sort_by_u.txt", ios::app) : sorted_channel.open("sort_by_v.txt", ios::app);
 
 	if(channel == 'u')
@@ -97,21 +96,31 @@ void sort_by (vector<UV_channel> uv_vector, char channel)
 		sorted_channel << "-------------------------------------------------------------------" << endl << endl;
 	}
 
+	set_median(uv_vector, total_sum);
 	sorted_channel.close();
 }
 
 void set_range(vector<UV_channel> uv_vector)
 {
-	auto u_min_max = minmax_element(uv_vector.begin(), uv_vector.end(), [](const UV_channel &a, const UV_channel &b)
+	decltype(uv_vector)::iterator minU, maxU;
+	decltype(uv_vector)::iterator minV, maxV;
+
+	tie(minU, maxU) = minmax_element(begin(uv_vector), end(uv_vector), [](UV_channel const& a, UV_channel const& b)
 	{
 		return a.u < b.u;
 	});
-	auto v_min_max = minmax_element(uv_vector.begin(), uv_vector.end(), [](const UV_channel &a, const UV_channel &b)
+	//auto u_min_max = minmax_element(uv_vector.begin(), uv_vector.end(), [](const UV_channel &a, const UV_channel &b)
+	//{
+	//	return a.u < b.u;
+	//});
+	tie(minV, maxV) = minmax_element(begin(uv_vector), end(uv_vector), [](UV_channel const& a, UV_channel const& b)
 	{
 		return a.v < b.v;
 	});
 
-	(u_min_max.second->u - u_min_max.first->u) > (v_min_max.second->v - v_min_max.first->v) ? sort_by(uv_vector, 'u') : sort_by(uv_vector, 'v');
+	cout << minU->u << " " << maxU->u << endl;
+	cout << minV->v << " " << maxV->v << endl;
+	(maxU->u - minU->u) > (maxV->v - minV->v) ? sort_by(uv_vector, 'u') : sort_by(uv_vector, 'v');
 }
 
 int main()
@@ -136,7 +145,6 @@ int main()
 	colors.close();
 
 	set_range(uv_vector);
-	set_median(uv_vector, total_sum);
 
     return 0;
 }
